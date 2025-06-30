@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Asisten Validasi Amikom PWT",
+  "version": "1.0",
+  "description": "Membantu otomatisasi validasi presensi di Student AMIKOM Purwokerto.",
+  "permissions": [
+    "activeTab"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://student.amikompurwokerto.ac.id/pembelajaran/rekap_presensi*"
+      ],
+      "js": [
+        "script.js"
+      ]
+    }
+  ]
+}
