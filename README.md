@@ -31,11 +31,11 @@ Anda hanya perlu melakukan ini satu kali.
 
 3.  **Aktifkan Mode Pengembang**
     -   Di pojok kanan atas halaman ekstensi, carilah dan aktifkan tombol **"Developer mode"** (Mode Pengembang).
-    ![Developer Mode](https://i.imgur.com/g3wM3Fv.png)
+    ![Developer Mode](https://i.imgur.com/Wvj4AJ5.jpeg)
 
 4.  **Muat Ekstensi**
     -   Beberapa tombol baru akan muncul. Klik tombol **"Load unpacked"** (Muat yang belum dipaketkan) yang ada di pojok kiri atas.
-    ![Load Unpacked](https://i.imgur.com/e4iY0m1.png)
+    ![Load Unpacked](https://i.imgur.com/puKoJGi.jpeg)
 
 5.  **Pilih Folder**
     -   Sebuah jendela file akan terbuka. Arahkan ke **folder ekstensi** yang sudah Anda siapkan (folder yang berisi `manifest.json` dan `script.js`), lalu klik tombol **"Select Folder"**.
@@ -67,6 +67,7 @@ Setiap kali Anda ingin melakukan validasi:
     -   Setelah semua sesi untuk satu mata kuliah selesai, script akan berhenti.
     -   Untuk lanjut ke mata kuliah berikutnya, cukup **Refresh halaman (F5)** dan klik lagi tombol "Jalankan Validasi TOTAL".
 
+> **CATATAN PENTING:** Skrip ini sudah disetting untuk tidak memberikan penilaian maksimal untuk dosen maupun assiten dosen, jika ingin melakukan penilaian penuh atau rata kanan kalian bisa mengeditnya sendiri sesuai dengan selera penilaian pada skrip yang ada.
 ---
 
 ## ❓ Troubleshooting
