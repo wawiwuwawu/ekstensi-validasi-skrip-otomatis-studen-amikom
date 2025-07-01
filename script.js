@@ -12,14 +12,15 @@
     const SELECTOR_TOMBOL_VALIDASI_BIRU = "table.table-bordered a.btn-sm.btn-primary";
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-    // Fungsi untuk mengisi form validasi otomatis
+    // Fungsi untuk mengisi form validasi otomatis (termasuk asisten dosen)
     async function isiFormValidasi() {
         console.log("Memulai pengisian form validasi...");
         
         // Tunggu 1 detik untuk memastikan modal sepenuhnya terbuka
         await sleep(1000);
         
-        // 1. Pilih opsi "Benar" untuk pertanyaan pertama
+        // 1. Validasi untuk DOSEN
+        // Pilih opsi "Benar" untuk pertanyaan pertama
         const radioBenar = document.querySelector('input[name="kesesuaian_perkuliahan"][value="1"]');
         if (radioBenar) {
             radioBenar.checked = true;
@@ -27,7 +28,7 @@
             console.log("Memilih 'Benar' untuk kehadiran dosen");
         }
 
-        // 2. Pilih opsi "Ya sesuai" untuk pertanyaan kedua
+        // Pilih opsi "Ya sesuai" untuk pertanyaan kedua
         const radioYaSesuai = document.querySelector('input[name="kesesuaian_materi"][value="1"]');
         if (radioYaSesuai) {
             radioYaSesuai.checked = true;
@@ -35,15 +36,72 @@
             console.log("Memilih 'Ya sesuai' untuk kesesuaian materi");
         }
 
-        // 3. Pilih opsi "Baik" untuk pertanyaan ketiga
+        // Pilih opsi "Baik" untuk pertanyaan ketiga
         const radioBaik = document.querySelector('input[name="penilaianmhs"][value="3"]');
         if (radioBaik) {
             radioBaik.checked = true;
             radioBaik.dispatchEvent(new Event('change', { bubbles: true }));
-            console.log("Memilih 'Baik' untuk penilaian");
+            console.log("Memilih 'Baik' untuk penilaian dosen");
         }
 
-        // 4. Klik tombol Simpan
+        // 2. Validasi untuk ASISTEN DOSEN
+        console.log("Memproses validasi asisten dosen...");
+        
+        // Kumpulkan semua radio button asdos
+        const semuaRadioAsdos = document.querySelectorAll('input[name^="asdospenilaian_"]');
+        
+        if (semuaRadioAsdos.length > 0) {
+            // Dapatkan indeks asdos unik (0, 1, dst)
+            const indeksAsdos = [...new Set(
+                [...semuaRadioAsdos].map(radio => radio.name.split('_')[1])
+            )];
+
+            // Untuk setiap asdos, isi ke-4 pertanyaan
+            for (const indeks of indeksAsdos) {
+                console.log(`Memproses asdos indeks ${indeks}...`);
+                
+                // Pertanyaan 1: Selalu Tepat Waktu (value=1)
+                const radioTepatWaktu = document.querySelector(
+                    `input[name="asdospenilaian_${indeks}_1"][value="1"]`
+                );
+                if (radioTepatWaktu) {
+                    radioTepatWaktu.checked = true;
+                    radioTepatWaktu.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                // Pertanyaan 2: Selalu sesuai (value=5)
+                const radioSesuai = document.querySelector(
+                    `input[name="asdospenilaian_${indeks}_2"][value="5"]`
+                );
+                if (radioSesuai) {
+                    radioSesuai.checked = true;
+                    radioSesuai.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                // Pertanyaan 3: Baik (value=10)
+                const radioBaikAsdos = document.querySelector(
+                    `input[name="asdospenilaian_${indeks}_3"][value="10"]`
+                );
+                if (radioBaikAsdos) {
+                    radioBaikAsdos.checked = true;
+                    radioBaikAsdos.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                // Pertanyaan 4: Baik (value=14)
+                const radioSangatBaik = document.querySelector(
+                    `input[name="asdospenilaian_${indeks}_4"][value="14"]`
+                );
+                if (radioSangatBaik) {
+                    radioSangatBaik.checked = true;
+                    radioSangatBaik.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+            console.log(`Berhasil memvalidasi ${indeksAsdos.length} asisten dosen`);
+        } else {
+            console.log("Tidak ditemukan asisten dosen");
+        }
+
+        // 3. Klik tombol Simpan
         const btnSimpan = document.getElementById('btnsimpan');
         if (btnSimpan) {
             console.log("Mengklik tombol Simpan...");
