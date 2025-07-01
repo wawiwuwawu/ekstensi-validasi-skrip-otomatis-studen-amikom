@@ -1,4 +1,4 @@
-# Asisten Validasi Presensi Amikom Purwokerto
+# Validasi Presensi Amikom Purwokerto
 
 ![Versi](https://img.shields.io/badge/versi-1.0-brightgreen)
 ![Browser](https://img.shields.io/badge/browser-Chrome-blue)
@@ -67,7 +67,7 @@ Setiap kali Anda ingin melakukan validasi:
     -   Setelah semua sesi untuk satu mata kuliah selesai, script akan berhenti.
     -   Untuk lanjut ke mata kuliah berikutnya, cukup **Refresh halaman (F5)** dan klik lagi tombol "Jalankan Validasi TOTAL".
 
-> **CATATAN PENTING:** Skrip ini sudah disetting untuk tidak memberikan penilaian maksimal untuk dosen maupun assiten dosen, jika ingin melakukan penilaian penuh atau rata kanan kalian bisa mengeditnya sendiri sesuai dengan selera penilaian pada skrip yang ada.
+> **CATATAN PENTING:** Skrip ini sudah disetting untuk tidak memberikan penilaian maksimal untuk dosen maupun asiten dosen, jika ingin melakukan penilaian penuh atau rata kiri kalian bisa mengeditnya sendiri sesuai dengan selera penilaian pada skrip yang ada.
 ---
 
 ## ❓ Troubleshooting
