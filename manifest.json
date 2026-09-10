@@ -1,19 +1,43 @@
 {
   "manifest_version": 3,
-  "name": "Asisten Validasi Amikom PWT",
-  "version": "1.0",
-  "description": "Membantu otomatisasi validasi presensi di Student AMIKOM Purwokerto.",
+  "name": "Amikom Student Assistant & Automation",
+  "version": "2.0.0",
+  "description": "Asisten otomatis validasi presensi dosen & asdos, War KRS cepat, serta pemantau jadwal akademik Student AMIKOM Purwokerto.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Amikom Student Assistant",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
   "permissions": [
-    "activeTab"
+    "activeTab",
+    "storage",
+    "cookies"
+  ],
+  "host_permissions": [
+    "https://student.amikompurwokerto.ac.id/*"
   ],
   "content_scripts": [
     {
       "matches": [
-        "https://student.amikompurwokerto.ac.id/pembelajaran/rekap_presensi*"
+        "https://student.amikompurwokerto.ac.id/*"
       ],
       "js": [
+        "lib/amikom-api.js",
+        "lib/krs-scheduler.js",
         "script.js"
-      ]
+      ],
+      "run_at": "document_idle"
     }
   ]
 }

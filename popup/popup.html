@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amikom Student Assistant</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div class="brand-text">
+          <h1>Amikom Assistant</h1>
+          <span class="version-tag">v2.0 • Automation Suite</span>
+        </div>
+      </div>
+      <div class="header-status">
+        <div id="session-badge" class="badge badge-outline">
+          <span class="pulse-dot"></span>
+          <span id="session-text">Cek Status...</span>
+        </div>
+        <button id="btn-refresh-global" class="icon-btn" title="Muat ulang data" aria-label="Refresh">
+          ↻
+        </button>
+      </div>
+    </header>
+
+    <!-- Session Warning Banner (Tampil saat belum login) -->
+    <div id="login-alert-banner" class="alert-banner hidden">
+      <div class="alert-icon">⚠️</div>
+      <div class="alert-content">
+        <strong>Belum Terhubung ke Student Amikom</strong>
+        <p>Silakan login terlebih dahulu di portal student untuk menjalankan otomasi.</p>
+        <button id="btn-go-login" class="btn btn-sm btn-primary">Buka Halaman Login</button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs" role="tablist">
+      <button class="tab-btn active" data-tab="tab-presensi" role="tab" aria-selected="true">
+        <span class="tab-icon">📋</span>
+        <span>Presensi</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-krs" role="tab" aria-selected="false">
+        <span class="tab-icon">🎯</span>
+        <span>War KRS</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-akademik" role="tab" aria-selected="false">
+        <span class="tab-icon">📅</span>
+        <span>Jadwal & Info</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-settings" role="tab" aria-selected="false">
+        <span class="tab-icon">⚙️</span>
+        <span>Opsi</span>
+      </button>
+    </nav>
+
+    <!-- Main Viewport -->
+    <main class="main-content">
+      <!-- ================= TAB 1: VALIDASI PRESENSI ================= -->
+      <section id="tab-presensi" class="tab-pane active" role="tabpanel">
+        <!-- Summary Card -->
+        <div class="card status-card">
+          <div class="card-header-row">
+            <span class="card-label">STATUS VALIDASI</span>
+            <span id="presensi-status-badge" class="badge badge-warning">Memuat...</span>
+          </div>
+          <div class="stat-number-row">
+            <span id="unvalidated-count" class="stat-value">-</span>
+            <span class="stat-desc">Sesi kuliah tertunda</span>
+          </div>
+          <div id="unvalidated-courses-list" class="mini-tag-list">
+            <!-- Diisi dinamis -->
+          </div>
+        </div>
+
+        <!-- Automation Settings Accordion / Box -->
+        <div class="card config-card">
+          <div class="card-title">⚙️ Konfigurasi Penilaian</div>
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="select-dosen-rating">Nilai Dosen:</label>
+              <select id="select-dosen-rating" class="select-input">
+                <option value="3" selected>Baik (Opsi 3 - Standar/Wajar)</option>
+                <option value="4">Sangat Baik (Opsi 4 - Maksimal)</option>
+                <option value="2">Cukup Baik (Opsi 2)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="select-asdos-preset">Nilai Asdos:</label>
+              <select id="select-asdos-preset" class="select-input">
+                <option value="default" selected>Wajar / Standar (Tepat Waktu & Baik)</option>
+                <option value="maksimal">Maksimal (Skor Tertinggi)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group-inline">
+            <label for="input-delay">Jeda Request:</label>
+            <div class="input-with-suffix">
+              <input type="number" id="input-delay" min="300" max="3000" step="100" value="600" class="num-input">
+              <span>ms</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Control Buttons -->
+        <div class="action-row">
+          <button id="btn-start-validation" class="btn btn-primary btn-block">
+            <span>🚀 Jalankan Validasi Otomatis (Cepat)</span>
+          </button>
+          <button id="btn-stop-validation" class="btn btn-danger btn-block hidden">
+            <span>⏹️ Hentikan Proses</span>
+          </button>
+        </div>
+
+        <!-- Live Progress Section -->
+        <div id="progress-container" class="progress-section hidden">
+          <div class="progress-header">
+            <span id="progress-label">Memproses validasi...</span>
+            <span id="progress-percent">0%</span>
+          </div>
+          <div class="progress-bar-track">
+            <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Mini Log Terminal -->
+        <div class="terminal-card">
+          <div class="terminal-header">
+            <span>📟 LOG AKTIVITAS</span>
+            <button id="btn-clear-logs" class="link-btn">Bersihkan</button>
+          </div>
+          <div id="terminal-console" class="terminal-body">
+            <div class="log-entry log-info">[SYSTEM] Asisten siap digunakan. Silakan klik Jalankan Validasi.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: WAR KRS (PILIH KELAS PERKULIAHAN) ================= -->
+      <section id="tab-krs" class="tab-pane" role="tabpanel">
+        <!-- Status & Overview Card -->
+        <div class="card krs-overview-card">
+          <div class="card-header-between">
+            <div class="krs-badge-row">
+              <span id="krs-phase-badge" class="badge badge-danger">🔴 KRS Sedang Ditutup</span>
+              <span id="krs-sks-status-text" class="stat-summary-text">0 Matkul • 0 SKS Terverifikasi</span>
+            </div>
+            <button id="btn-refresh-portal-data" class="btn btn-xs btn-outline" title="Segarkan status KRS langsung dari portal dan web">
+              <span>🔄 Refresh Data & Web</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- LANGKAH 1: PILIH STRATEGI ANDA -->
+        <div class="card strategy-card">
+          <div class="card-title-sm mb-2">🎯 LANGKAH 1: PILIH TUJUAN JADWAL ANDA</div>
+          
+          <!-- Strategy Choice Radio Cards -->
+          <div class="strategy-radio-grid">
+            <label class="strategy-radio-card" id="card-strat-compact">
+              <div class="radio-header-row">
+                <input type="radio" name="krs-main-strategy" value="COMPACT_DAYS" checked>
+                <strong class="radio-card-title">🏖️ Mode Libur Maksimal (Rapel Hari)</strong>
+              </div>
+              <p class="radio-card-desc">Cari jadwal dengan hari sesedikit mungkin (misal masuk 2 hari) agar sisa hari bisa libur penuh!</p>
+            </label>
+
+            <label class="strategy-radio-card" id="card-strat-block">
+              <div class="radio-header-row">
+                <input type="radio" name="krs-main-strategy" value="BLOCK_CLASS">
+                <strong class="radio-card-title">🏢 Mode Satu Rombel (Block Kelas)</strong>
+              </div>
+              <p class="radio-card-desc">Pilih paket kelas yang sama untuk sekelas dengan teman (misal selalu utamakan Kelas B).</p>
+            </label>
+          </div>
+
+          <p class="card-hint-sm mt-2">ℹ️ Hari, jam, ruang, dan analisis bentrok hanya dapat dihitung setelah portal merilis penawaran kelas (form "Isi KRS / Pilih Kelas Perkuliahan"). Selama portal belum merilis, pilihan di bawah tersimpan sebagai preferensi saja — belum ada jadwal yang bisa disusun.</p>
+
+          <!-- Detail Pengaturan Mode 1: Libur Maksimal -->
+          <div id="strat-pane-compact" class="strat-pane-content">
+            <div class="strat-control-group mt-2">
+              <label class="field-label-xs">Target Jumlah Hari Kuliah:</label>
+              <div id="compact-days-selector" class="pill-selector-row">
+                <button class="choice-pill active" data-days="2">⚡ 2 Hari</button>
+                <button class="choice-pill" data-days="3">📅 3 Hari</button>
+                <button class="choice-pill" data-days="4">4 Hari</button>
+                <button class="choice-pill" data-days="0">Fleksibel</button>
+              </div>
+            </div>
+            <div class="strat-control-group mt-1">
+              <label class="field-label-xs">Hari yang Diutamakan untuk Kuliah:</label>
+              <div id="preferred-days-selector" class="day-chip-row">
+                <button class="day-chip active" data-day="Senin">Sen</button>
+                <button class="day-chip" data-day="Selasa">Sel</button>
+                <button class="day-chip" data-day="Rabu">Rab</button>
+                <button class="day-chip active" data-day="Kamis">Kam</button>
+                <button class="day-chip" data-day="Jumat">Jum</button>
+                <button class="day-chip" data-day="Sabtu">Sab</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detail Pengaturan Mode 2: Block Kelas -->
+          <div id="strat-pane-block" class="strat-pane-content hidden">
+            <div class="strat-control-group mt-2">
+              <div class="field-header-row">
+                <label class="field-label-xs">Urutan Prioritas Kelas Idaman:</label>
+                <span id="priority-count-badge" class="badge badge-xs badge-outline">4 Kelas Terpasang</span>
+              </div>
+              
+              <!-- Dynamic Interactive Priority Sequence Tag List -->
+              <div id="priority-sequence-container" class="priority-sequence-wrap">
+                <!-- Di-render dinamis: [ #1 Kelas B ◀ ▶ ] ➔ [ #2 Kelas C ◀ ▶ ] ➔ [ #3 Kelas A ◀ ▶ ] -->
+              </div>
+
+              <!-- Quick Presets -->
+              <div class="priority-presets-bar mt-1">
+                <span class="presets-label">Preset Cepat:</span>
+                <button type="button" class="preset-pill-btn" data-preset="B">Mulai B</button>
+                <button type="button" class="preset-pill-btn" data-preset="A">Mulai A</button>
+                <button type="button" class="preset-pill-btn" data-preset="C">Mulai C</button>
+                <button type="button" class="preset-pill-btn" data-preset="D">Mulai D</button>
+                <button type="button" class="preset-pill-btn" data-preset="RESET" title="Reset urutan">↺ Reset</button>
+              </div>
+            </div>
+
+            <div class="form-group-inline mt-1">
+              <label for="block-fallback-policy" class="label-xs">Jika kelas utama penuh:</label>
+              <select id="block-fallback-policy" class="select-input select-xs">
+                <option value="BEST_FIT" selected>Utamakan urutan prioritas (hindari bentrok bila jadwal tersedia)</option>
+                <option value="STRICT">Hanya kelas target prioritas (Ketat)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- LANGKAH 2: MATA KULIAH TERDAFTAR (SELALU DARI PORTAL, TANPA KELAS/JADWAL) -->
+        <div class="card my-courses-card">
+          <div class="card-header-between mb-1">
+            <div class="card-title-sm">📚 LANGKAH 2: MATA KULIAH TERDAFTAR (SEMESTER INI)</div>
+            <span id="verified-courses-summary" class="badge badge-outline">0 SKS</span>
+          </div>
+          <div id="krs-verified-courses-list" class="verified-courses-list">
+            <!-- Di-render dinamis dari data Tab 2 portal (mata kuliah terverifikasi) -->
+          </div>
+        </div>
+
+        <!-- HASIL EKSEKUSI / JADWAL RESMI (MUNCUL SETELAH DATA ADA) -->
+        <div id="krs-result-card" class="card krs-result-card hidden">
+          <div class="card-header-between mb-1">
+            <div class="card-title-sm">📊 Hasil Penyusunan Jadwal (Bila Jadwal Dirilis Portal)</div>
+            <span id="krs-result-badge" class="badge badge-success">Belum ada jadwal</span>
+          </div>
+          <div id="krs-execution-result-banner" class="execution-result-banner">
+            <!-- Rangkuman hasil eksekusi -->
+          </div>
+          <!-- Sesi Type Legend -->
+          <div class="timetable-legend-bar mt-1">
+            <span class="legend-chip legend-theory"><span class="legend-dot theory"></span> Teori</span>
+            <span class="legend-chip legend-practice"><span class="legend-dot practice"></span> Praktik</span>
+            <span class="legend-chip legend-b2b"><span class="legend-icon">🔗</span> Back-to-Back</span>
+            <span class="legend-chip legend-pure"><span class="legend-dot pure"></span> Murni Teori</span>
+          </div>
+          <!-- Timetable Grid Container -->
+          <div class="timetable-scroll-wrap mt-1">
+            <div id="timetable-grid" class="timetable-grid">
+              <!-- Placeholder jujur; diganti kolom hari oleh krs-plan.js hanya saat jadwal nyata tersedia -->
+              <div class="loading-state" style="grid-column: 1 / -1;">Jadwal belum dapat dihitung: hari, jam, dan ruang kelas baru tersedia setelah portal merilis penawaran kelas. Analisis bentrok hanya ditampilkan bila data jadwal sudah ada.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LANGKAH 3: PANEL EKSEKUSI & BOT WAR KRS -->
+        <div class="card war-panel-card">
+          <div class="card-title-sm mb-1">⚡ LANGKAH 3: EKSEKUSI & SIAGAKAN BOT</div>
+
+          <!-- Status Portal Warning -->
+          <div id="portal-status-notice" class="krs-safety-banner mb-2">
+            <span class="safety-icon" id="portal-status-icon">🔴</span>
+            <span class="safety-text" id="portal-status-text">
+              <strong>Status KRS:</strong> Saat ini portal kampus belum membuka pengisian kelas. Preferensi strategi Anda tetap tersimpan. Jadwal, jam, dan analisis bentrok baru dapat dihitung setelah portal merilis penawaran kelas, dan bot siaga hanya bisa dikunci bila penawaran kelas sudah tersedia.
+            </span>
+          </div>
+
+          <!-- Action Buttons Stack -->
+          <div class="war-action-stack">
+            <button id="btn-execute-war-instant" class="btn btn-primary btn-block btn-war">
+              <span id="btn-war-main-label">🔥 EKSEKUSI WAR KRS SEKARANG</span>
+            </button>
+            <button id="btn-toggle-arm-snipe" class="btn btn-warning btn-block btn-arm">
+              <span id="btn-snipe-label">🔒 KUNCI STRATEGI & SIAGAKAN BOT WAR</span>
+            </button>
+            <button id="btn-stop-war-instant" class="btn btn-danger btn-block hidden">
+              <span>⏹️ HENTIKAN PROSES WAR / SNIPING</span>
+            </button>
+          </div>
+
+          <!-- Refresh Portal & Web Button -->
+          <div class="btn-refresh-wrap mt-1">
+            <button id="btn-sync-all-web" class="btn btn-outline btn-block btn-sm">
+              <span>🔄 Segarkan Data Portal & Halaman Web</span>
+            </button>
+          </div>
+
+          <!-- Resilience & Auto-Retry Checkbox -->
+          <div class="resilience-panel mt-1">
+            <div class="resilience-row">
+              <label class="checkbox-label-xs">
+                <input type="checkbox" id="war-auto-retry-enabled" checked>
+                <span>Auto-Retry Cepat jika Server Kampus 503 / Sibuk</span>
+              </label>
+              <div class="retry-config-inline">
+                <span>Jeda:</span>
+                <input type="number" id="war-retry-delay" min="200" max="2000" step="50" value="400" class="num-input-xs">
+                <span>ms</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- War Terminal Log -->
+          <div class="terminal-card mt-1">
+            <div class="terminal-header">
+              <span>📟 LOG AKTIVITAS WAR KRS</span>
+              <button id="btn-clear-war-logs" class="link-btn">Bersihkan</button>
+            </div>
+            <div id="war-terminal-console" class="terminal-body war-terminal">
+              <div class="log-entry log-info">[SISTEM] Pengaturan tersimpan otomatis. Pilih strategi Anda di Langkah 1.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 3: JADWAL & AKADEMIK ================= -->
+      <section id="tab-akademik" class="tab-pane" role="tabpanel">
+        <div class="sub-nav-segmented">
+          <button class="sub-tab-btn active" data-sub="sub-uas">Jadwal Ujian</button>
+          <button class="sub-tab-btn" data-sub="sub-agenda">Agenda</button>
+          <button class="sub-tab-btn" data-sub="sub-pengumuman">Pengumuman</button>
+        </div>
+
+        <!-- Subtab 1: Jadwal Ujian (UAS/UTS) -->
+        <div id="sub-uas" class="sub-pane active">
+          <div class="filter-row">
+            <button id="btn-filter-uas" class="pill-btn active">UAS</button>
+            <button id="btn-filter-uts" class="pill-btn">UTS</button>
+          </div>
+          <div id="list-jadwal-ujian" class="info-list">
+            <div class="loading-state">Memuat jadwal ujian...</div>
+          </div>
+        </div>
+
+        <!-- Subtab 2: Agenda Akademik -->
+        <div id="sub-agenda" class="sub-pane hidden">
+          <div id="list-agenda" class="info-list">
+            <div class="loading-state">Memuat agenda akademik...</div>
+          </div>
+        </div>
+
+        <!-- Subtab 3: Pengumuman Kampus -->
+        <div id="sub-pengumuman" class="sub-pane hidden">
+          <div id="list-pengumuman" class="info-list">
+            <div class="loading-state">Memuat pengumuman...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 4: PENGATURAN & BANTUAN ================= -->
+      <section id="tab-settings" class="tab-pane" role="tabpanel">
+        <div class="card">
+          <div class="card-title">📖 Panduan Singkat</div>
+          <ul class="guide-list">
+            <li><strong>Login Sekali:</strong> Pastikan Anda sudah login ke portal Student Amikom. Ekstensi akan otomatis menggunakan sesi login aktif tersebut.</li>
+            <li><strong>Validasi 1-Click:</strong> Jalankan validasi presensi secara langsung via Direct API tanpa reload halaman dan tanpa klik manual.</li>
+            <li><strong>War KRS Otomatis:</strong> Pilih mata kuliah target dan ajukan dengan kecepatan maksimal saat periode KRS dibuka.</li>
+            <li><strong>Nilai Wajar:</strong> Default penilaian diset netral dan wajar agar tidak mencolok, namun tetap dapat diubah ke nilai maksimal.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🔗 Pintasan Cepat</div>
+          <div class="btn-stack">
+            <button id="btn-open-student" class="btn btn-outline btn-block">
+              🌐 Buka Portal Student Amikom
+            </button>
+            <button id="btn-open-presensi" class="btn btn-outline btn-block">
+              📑 Buka Halaman Rekap Presensi
+            </button>
+            <button id="btn-open-krs" class="btn btn-outline btn-block">
+              📝 Buka Halaman Pengisian KRS
+            </button>
+          </div>
+        </div>
+
+        <div class="card credit-card">
+          <div class="credit-text">
+            <strong>Amikom Student Assistant v2.0</strong>
+            <p>Didesain untuk menghemat waktu dan meningkatkan efisiensi mahasiswa AMIKOM Purwokerto.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../lib/amikom-api.js"></script>
+  <script src="../lib/krs-scheduler.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/app-util.js"></script>
+  <script src="js/tab-presensi.js"></script>
+  <script src="js/tab-akademik.js"></script>
+  <script src="js/krs-plan.js"></script>
+  <script src="js/krs-controls.js"></script>
+  <script src="js/krs-data.js"></script>
+  <script src="js/krs-war.js"></script>
+  <script src="js/init.js"></script>
+</body>
+</html>

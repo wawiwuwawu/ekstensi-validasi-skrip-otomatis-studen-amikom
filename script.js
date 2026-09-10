@@ -1,247 +1,255 @@
-(function() {
-    'use strict';
-    console.log("Asisten v20 (Full Automation) siap dijalankan...");
+/**
+ * Amikom Student Assistant - Content Script (v2.0 Minimalist)
+ * Floating Action Pill di portal student.amikompurwokerto.ac.id
+ * Direct API Engine: cepat, tanpa reload, tanpa simulasi DOM yang rentan.
+ */
+(function () {
+  'use strict';
 
-    if (document.getElementById('asisten-validasi-btn')) {
-        document.getElementById('asisten-validasi-btn').remove();
+  if (window.__amikomAssistantInjected) return;
+  window.__amikomAssistantInjected = true;
+
+  console.log('%c⚡ Amikom Student Assistant Aktif', 'background: #6d28d9; color: #fff; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+
+  const api = window.AmikomAPI ? new window.AmikomAPI() : null;
+
+  const state = {
+    isRunning: false,
+    unvalidatedTotal: 0
+  };
+
+  // Feedback visual non-blocking pengganti modal alert()
+  function showInPageNotification(msg, type = 'success') {
+    let toast = document.getElementById('ast-inpage-notification');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'ast-inpage-notification';
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000000;
+        padding: 9px 15px;
+        border-radius: 8px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        pointer-events: none;
+      `;
+      document.body.appendChild(toast);
+    }
+    const isSuccess = type === 'success';
+    toast.style.background = isSuccess ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #b91c1c)';
+    toast.style.color = '#ffffff';
+    toast.style.border = isSuccess ? '1px solid #34d399' : '1px solid #f87171';
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    setTimeout(() => {
+      if (toast) {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-8px)';
+      }
+    }, 2800);
+  }
+
+  function injectFloatingWidget() {
+    // Bersihkan elemen lama jika ada
+    const oldPill = document.getElementById('amikom-assistant-widget');
+    if (oldPill) oldPill.remove();
+    const oldStyle = document.getElementById('amikom-assistant-styles');
+    if (oldStyle) oldStyle.remove();
+
+    // Style terpadu: Floating Action Pill
+    const style = document.createElement('style');
+    style.id = 'amikom-assistant-styles';
+    style.textContent = `
+      #amikom-assistant-widget {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 999999;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 12px;
+        user-select: none;
+      }
+      .ast-dock {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #0b0f19;
+        border: 1px solid #2b384e;
+        padding: 5px 10px;
+        border-radius: 9999px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      .ast-dock:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      }
+      .ast-pill-brand {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #f8fafc;
+        font-weight: 700;
+        padding: 0 4px;
+        cursor: pointer;
+      }
+      .ast-icon { font-size: 14px; }
+      .ast-badge {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        background: #ef4444;
+        color: #ffffff;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+      }
+      .ast-badge.green { background: #10b981; }
+      .ast-btn {
+        border: none;
+        border-radius: 9999px;
+        padding: 6px 13px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: #ffffff;
+        transition: all 0.15s ease;
+      }
+      .ast-btn:hover:not(:disabled) {
+        opacity: 0.92;
+        transform: translateY(-1px);
+      }
+      .ast-btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .ast-btn-purple {
+        background: linear-gradient(135deg, #7c3aed, #9333ea);
+        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+      }
+      .ast-btn-refresh {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-size: 12px;
+        padding: 3px 6px;
+        border-radius: 9999px;
+        cursor: pointer;
+        transition: color 0.15s ease, transform 0.25s ease;
+      }
+      .ast-btn-refresh:hover {
+        color: #ffffff;
+        transform: rotate(180deg);
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Render Widget Dock
+    const widget = document.createElement('div');
+    widget.id = 'amikom-assistant-widget';
+    widget.innerHTML = `
+      <div class="ast-dock">
+        <div class="ast-pill-brand" id="ast-brand-btn" title="Amikom Student Assistant (Klik untuk cek status)">
+          <span class="ast-icon">⚡</span>
+          <span id="ast-label-text">Amikom</span>
+        </div>
+        <span class="ast-badge" id="ast-badge" title="Status validasi presensi (Klik untuk segarkan)">...</span>
+        <button class="ast-btn ast-btn-purple" id="ast-action-btn" title="Validasi presensi dosen & asdos otomatis via Direct API">
+          🚀 Presensi
+        </button>
+        <button class="ast-btn-refresh" id="ast-refresh-btn" title="Segarkan status presensi">
+          🔄
+        </button>
+      </div>
+    `;
+    document.body.appendChild(widget);
+
+    // Event listeners
+    document.getElementById('ast-action-btn')?.addEventListener('click', runValidation);
+    document.getElementById('ast-refresh-btn')?.addEventListener('click', checkStatus);
+    document.getElementById('ast-badge')?.addEventListener('click', checkStatus);
+    document.getElementById('ast-brand-btn')?.addEventListener('click', checkStatus);
+
+    // Cek status presensi awal
+    checkStatus();
+  }
+
+  async function checkStatus() {
+    const badge = document.getElementById('ast-badge');
+    const actionBtn = document.getElementById('ast-action-btn');
+    if (!badge || !actionBtn) return;
+    if (!api) {
+      badge.textContent = '!';
+      badge.title = 'Modul AmikomAPI tidak terdeteksi';
+      return;
     }
 
-    // --- Definisi Variabel & Fungsi ---
-    const SELECTOR_LIST_UTAMA_MATKUL = "div.messageListMakulBelum ul > li";
-    const SELECTOR_DROPDOWN_MATKUL = "#makul";
-    const SELECTOR_TOMBOL_VALIDASI_BIRU = "table.table-bordered a.btn-sm.btn-primary";
-    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    try {
+      const data = await api.listMakulBelumValidasi();
+      const keys = Object.keys(data || {});
+      let count = 0;
+      keys.forEach((k) => (count += data[k].count || 0));
+      state.unvalidatedTotal = count;
 
-    // Fungsi untuk mengisi form validasi otomatis (termasuk asisten dosen)
-    async function isiFormValidasi() {
-        console.log("Memulai pengisian form validasi...");
-        
-        // Tunggu 1 detik untuk memastikan modal sepenuhnya terbuka
-        await sleep(1000);
-        
-        // 1. Validasi untuk DOSEN
-        // Pilih opsi "Benar" untuk pertanyaan pertama
-        const radioBenar = document.querySelector('input[name="kesesuaian_perkuliahan"][value="1"]');
-        if (radioBenar) {
-            radioBenar.checked = true;
-            radioBenar.dispatchEvent(new Event('change', { bubbles: true }));
-            console.log("Memilih 'Benar' untuk kehadiran dosen");
-        }
-
-        // Pilih opsi "Ya sesuai" untuk pertanyaan kedua
-        const radioYaSesuai = document.querySelector('input[name="kesesuaian_materi"][value="1"]');
-        if (radioYaSesuai) {
-            radioYaSesuai.checked = true;
-            radioYaSesuai.dispatchEvent(new Event('change', { bubbles: true }));
-            console.log("Memilih 'Ya sesuai' untuk kesesuaian materi");
-        }
-
-        // Pilih opsi "Baik" untuk pertanyaan ketiga
-        const radioBaik = document.querySelector('input[name="penilaianmhs"][value="3"]');
-        if (radioBaik) {
-            radioBaik.checked = true;
-            radioBaik.dispatchEvent(new Event('change', { bubbles: true }));
-            console.log("Memilih 'Baik' untuk penilaian dosen");
-        }
-
-        // 2. Validasi untuk ASISTEN DOSEN
-        console.log("Memproses validasi asisten dosen...");
-        
-        // Kumpulkan semua radio button asdos
-        const semuaRadioAsdos = document.querySelectorAll('input[name^="asdospenilaian_"]');
-        
-        if (semuaRadioAsdos.length > 0) {
-            // Dapatkan indeks asdos unik (0, 1, dst)
-            const indeksAsdos = [...new Set(
-                [...semuaRadioAsdos].map(radio => radio.name.split('_')[1])
-            )];
-
-            // Untuk setiap asdos, isi ke-4 pertanyaan
-            for (const indeks of indeksAsdos) {
-                console.log(`Memproses asdos indeks ${indeks}...`);
-                
-                // Pertanyaan 1: Selalu Tepat Waktu (value=1)
-                const radioTepatWaktu = document.querySelector(
-                    `input[name="asdospenilaian_${indeks}_1"][value="1"]`
-                );
-                if (radioTepatWaktu) {
-                    radioTepatWaktu.checked = true;
-                    radioTepatWaktu.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-
-                // Pertanyaan 2: Selalu sesuai (value=5)
-                const radioSesuai = document.querySelector(
-                    `input[name="asdospenilaian_${indeks}_2"][value="5"]`
-                );
-                if (radioSesuai) {
-                    radioSesuai.checked = true;
-                    radioSesuai.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-
-                // Pertanyaan 3: Baik (value=10)
-                const radioBaikAsdos = document.querySelector(
-                    `input[name="asdospenilaian_${indeks}_3"][value="10"]`
-                );
-                if (radioBaikAsdos) {
-                    radioBaikAsdos.checked = true;
-                    radioBaikAsdos.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-
-                // Pertanyaan 4: Baik (value=14)
-                const radioSangatBaik = document.querySelector(
-                    `input[name="asdospenilaian_${indeks}_4"][value="14"]`
-                );
-                if (radioSangatBaik) {
-                    radioSangatBaik.checked = true;
-                    radioSangatBaik.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            }
-            console.log(`Berhasil memvalidasi ${indeksAsdos.length} asisten dosen`);
-        } else {
-            console.log("Tidak ditemukan asisten dosen");
-        }
-
-        // 3. Klik tombol Simpan
-        const btnSimpan = document.getElementById('btnsimpan');
-        if (btnSimpan) {
-            console.log("Mengklik tombol Simpan...");
-            btnSimpan.click();
-            
-            // Tunggu 2 detik untuk memastikan data tersimpan
-            await sleep(2000);
-        }
+      if (count > 0) {
+        badge.className = 'ast-badge';
+        badge.textContent = `${count} Sesi`;
+        actionBtn.disabled = false;
+        actionBtn.innerHTML = `🚀 Validasi (${count})`;
+      } else {
+        badge.className = 'ast-badge green';
+        badge.textContent = '✓ Bersih';
+        actionBtn.disabled = true;
+        actionBtn.innerHTML = '✓ Tervalidasi';
+      }
+    } catch (e) {
+      badge.className = 'ast-badge';
+      badge.textContent = '!';
+      actionBtn.title = 'Gagal memuat status: periksa koneksi atau status login';
     }
+  }
 
-    // Fungsi untuk mengklik tombol 'B' satu per satu dan mengisi form
-    async function prosesSesiSatuPerSatu() {
-        while (true) {
-            const tombolBiru = document.querySelector(SELECTOR_TOMBOL_VALIDASI_BIRU);
-            if (!tombolBiru) {
-                console.log("✅ Semua sesi untuk mata kuliah ini selesai.");
-                return true; // Mengembalikan true untuk menandakan selesai
-            }
-            
-            console.log("Menemukan sesi... Mensimulasikan klik pada tombol 'B'...");
-            
-            // Simpan fungsi asli onclick jika ada
-            const originalOnClick = tombolBiru.onclick;
-            let modalDibuka = false;
-            
-            // Override fungsi onclick untuk mendeteksi pembukaan modal
-            tombolBiru.onclick = function(e) {
-                // Panggil fungsi asli jika ada
-                if (originalOnClick) {
-                    originalOnClick.call(this, e);
-                }
-                
-                // Tandai bahwa modal sedang dibuka
-                modalDibuka = true;
-            };
-            
-            // Klik tombol
-            tombolBiru.dispatchEvent(
-                new MouseEvent('click', { bubbles: true, cancelable: true, view: window })
-            );
-            
-            // Tunggu hingga modal terbuka (dicek setiap 200ms)
-            for (let i = 0; i < 15; i++) {
-                if (modalDibuka) break;
-                await sleep(200);
-            }
-            
-            if (modalDibuka) {
-                console.log("Modal validasi terbuka, mengisi form...");
-                await isiFormValidasi();
-            } else {
-                console.warn("Modal tidak terbuka setelah klik tombol, melanjutkan...");
-            }
-            
-            // Kembalikan fungsi onclick asli
-            tombolBiru.onclick = originalOnClick;
-            
-            // Tunggu sebelum melanjutkan ke sesi berikutnya
-            await sleep(1500);
+  async function runValidation() {
+    if (state.isRunning || !api) return;
+    state.isRunning = true;
+
+    const actionBtn = document.getElementById('ast-action-btn');
+    const labelText = document.getElementById('ast-label-text');
+    if (actionBtn) actionBtn.disabled = true;
+
+    try {
+      showInPageNotification('⚡ Memulai validasi presensi otomatis...', 'success');
+      await api.autoValidateAll({
+        dosenRating: '3',
+        asdosPreset: 'default',
+        delayMs: 600,
+        onProgress: (p) => {
+          if (actionBtn) actionBtn.textContent = `⚙️ ${p.percent}%`;
+          if (labelText) labelText.textContent = `${p.current}/${p.total}`;
         }
+      });
+      await checkStatus();
+      showInPageNotification('🎉 Validasi presensi berhasil diselesaikan!', 'success');
+    } catch (err) {
+      showInPageNotification(`Kendala validasi: ${err.message}`, 'error');
+    } finally {
+      state.isRunning = false;
+      if (labelText) labelText.textContent = 'Amikom';
+      await checkStatus();
     }
+  }
 
-    // Fungsi utama yang menjalankan seluruh alur kerja
-    async function mulaiValidasiUtama() {
-        console.log("Memulai proses validasi otomatis penuh...");
-        const tombolAsisten = document.getElementById('asisten-validasi-btn');
-        tombolAsisten.innerHTML = '⚙️ Sedang Bekerja...';
-        tombolAsisten.disabled = true;
-
-        while (true) {
-            const daftarMatkulUtama = document.querySelectorAll(SELECTOR_LIST_UTAMA_MATKUL);
-            if (daftarMatkulUtama.length === 0) {
-                alert("🎉 SEMUA VALIDASI TELAH SELESAI!");
-                tombolAsisten.innerHTML = '✔️ Semua Selesai';
-                break;
-            }
-
-            const namaMatkul = daftarMatkulUtama[0].textContent.split("Mata Kuliah ")[1].trim();
-            console.log(`--- Memproses Mata Kuliah: ${namaMatkul} ---`);
-            const dropdown = document.querySelector(SELECTOR_DROPDOWN_MATKUL);
-            const options = Array.from(dropdown.options);
-            const targetOption = options.find(opt => opt.text.trim() === namaMatkul);
-
-            if (targetOption) {
-                // --- Simulasi lengkap untuk dropdown ---
-                console.log("Memilih matkul di dropdown...");
-                
-                // 1. Focus pada dropdown
-                dropdown.focus();
-                dropdown.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
-                await sleep(300);
-                
-                // 2. Buka dropdown
-                dropdown.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-                await sleep(500);
-                
-                // 3. Pilih opsi
-                targetOption.selected = true;
-                
-                // 4. Trigger semua event yang diperlukan
-                targetOption.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-                dropdown.dispatchEvent(new Event('input', { bubbles: true }));
-                dropdown.dispatchEvent(new Event('change', { bubbles: true }));
-                
-                // 5. Tutup dropdown (simulasi keydown ESC)
-                dropdown.dispatchEvent(new KeyboardEvent('keydown', {
-                    key: 'Escape',
-                    code: 'Escape',
-                    bubbles: true
-                }));
-                
-                console.log(`Berhasil memilih ${namaMatkul}. Menunggu daftar sesi muncul...`);
-                await sleep(3000);
-
-                // Proses semua tombol 'B' di matkul ini
-                const selesai = await prosesSesiSatuPerSatu();
-                
-                if (selesai) {
-                    console.log(`--- Selesai dengan Mata Kuliah: ${namaMatkul} ---`);
-                    
-                    // Refresh halaman untuk memuat data terbaru
-                    console.log("Me-refresh halaman untuk matkul berikutnya...");
-                    window.location.reload();
-                    return; // Keluar dari loop karena halaman akan refresh
-                }
-            } else {
-                console.error(`Gagal menemukan ${namaMatkul} di dropdown.`);
-                tombolAsisten.innerHTML = '❌ Gagal';
-                break;
-            }
-        }
-    }
-
-    // Membuat tombol utama
-    const btn = document.createElement('button');
-    btn.id = 'asisten-validasi-btn';
-    btn.innerHTML = '🚀 Jalankan Validasi TOTAL';
-    btn.style = 'position: fixed; bottom: 20px; right: 20px; z-index: 9999; padding: 12px 20px; background-color: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.2); font-size: 16px; font-weight: bold;';
-    document.body.appendChild(btn);
-    btn.addEventListener('click', mulaiValidasiUtama);
-
-    console.log("Tombol 'Jalankan Validasi TOTAL' telah ditambahkan");
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', injectFloatingWidget);
+  } else {
+    injectFloatingWidget();
+  }
 })();
