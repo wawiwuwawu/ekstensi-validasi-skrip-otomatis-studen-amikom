@@ -1,0 +1,13 @@
+{
+    "asdoss": [],
+    "kriterias": [
+        { "asdos_krit_id": "1", "asdos_krit_isi": "Kehadiran Asisten",
+          "nilai": [ { "asdos_krit_nilai_id": "1", "asdos_krit_nilai_isi": "Selalu Tepat Waktu", "asdos_krit_nilai": 4 } ] },
+        { "asdos_krit_id": "2", "asdos_krit_isi": "Pakaian Seragam Rapi",
+          "nilai": [ { "asdos_krit_nilai_id": "5", "asdos_krit_nilai_isi": "Selalu sesuai", "asdos_krit_nilai": 4 } ] },
+        { "asdos_krit_id": "3", "asdos_krit_isi": "Penguasaan Materi Praktikum",
+          "nilai": [ { "asdos_krit_nilai_id": "10", "asdos_krit_nilai_isi": "Baik", "asdos_krit_nilai": 3 } ] },
+        { "asdos_krit_id": "4", "asdos_krit_isi": "Komunikatif",
+          "nilai": [ { "asdos_krit_nilai_id": "14", "asdos_krit_nilai_isi": "Baik", "asdos_krit_nilai": 3 } ] }
+    ]
+}

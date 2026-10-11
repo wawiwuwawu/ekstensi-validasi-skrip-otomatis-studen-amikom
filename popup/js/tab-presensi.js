@@ -114,11 +114,16 @@
       if (state.isStopped) {
         showToast('Otomasi dihentikan oleh pengguna.', 'warn');
       } else if (res.success) {
-        showToast(`Otomasi selesai! ${res.count} sesi berhasil divalidasi.`, 'success');
+        const gagal = res.failedCount ? `, ${res.failedCount} gagal/dilewati` : '';
+        const dilewati = res.skippedMatkul ? `, ${res.skippedMatkul} mata kuliah dilewati` : '';
+        showToast(`Otomasi selesai! ${res.count} sesi berhasil divalidasi${gagal}${dilewati}.`, 'success');
       }
     } catch (err) {
-      log('error', `Otomasi terhenti: ${err.message}`);
-      showToast(`Error: ${err.message}`, 'error');
+      const pesan = (err.code === 'SESSION_EXPIRED' || err.message === 'SESSION_EXPIRED')
+        ? 'Sesi login berakhir. Silakan login ulang di portal Student Amikom, lalu jalankan validasi kembali.'
+        : err.message;
+      log('error', `Otomasi terhenti: ${pesan}`);
+      showToast(`Error: ${pesan}`, 'error');
     } finally {
       state.isRunning = false;
       $('btn-start-validation')?.classList.remove('hidden');

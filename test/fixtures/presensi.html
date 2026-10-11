@@ -1,0 +1,23 @@
+<!-- Struktur form rekap presensi portal student.
+     SENGAJA DIMODIFIKASI untuk regression test (bukan salinan verbatim):
+       - #semester diberi option penciri "9" selected. Kode lama membaca select ini
+         (di halaman asli kosong & disabled) dan menyimpulkan semester "" -> throw.
+         Test harus tetap menghasilkan "1" dari POST /pembelajaran/getSem, bukan 9.
+       - variabel currentSEMESTER di bawah dipakai untuk menguji fallback bila getSem
+         kosong atau gagal; nilainya 7 supaya berbeda dari getSem. -->
+<select class="form-control" name="thn_akademik" id="thn_akademik">
+    <option value="2023/2024" >2023/2024</option>
+    <option value="2024/2025" >2024/2025</option>
+    <option value="2025/2026" >2025/2026</option>
+    <option value="2026/2027" selected>2026/2027</option>
+</select>
+<select class="form-control" name="semester" id="semester" disabled="true">
+    <option value="9" selected>9</option>
+</select>
+<select class="form-control" name="makul" id="makul" disabled="true">
+    <option value="">--Pilih--</option>
+</select>
+<script type="text/javascript">
+  var currentTHNAKADEMIK = "2026/2027";
+  var currentSEMESTER = "7";
+</script>

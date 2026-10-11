@@ -15,6 +15,7 @@
 
   const state = {
     isRunning: false,
+    isStopped: false,
     unvalidatedTotal: 0
   };
 
@@ -186,6 +187,9 @@
     const badge = document.getElementById('ast-badge');
     const actionBtn = document.getElementById('ast-action-btn');
     if (!badge || !actionBtn) return;
+    // Saat proses berjalan tombol aksi sedang berfungsi sebagai tombol HENTIKAN;
+    // jangan ditimpa label/disabled oleh refresh status.
+    if (state.isRunning) return;
     if (!api) {
       badge.textContent = '!';
       badge.title = 'Modul AmikomAPI tidak terdeteksi';
@@ -220,29 +224,58 @@
   async function runValidation() {
     if (state.isRunning || !api) return;
     state.isRunning = true;
+    state.isStopped = false;
 
     const actionBtn = document.getElementById('ast-action-btn');
     const labelText = document.getElementById('ast-label-text');
-    if (actionBtn) actionBtn.disabled = true;
+
+    // Selama proses berjalan, tombol aksi jadi tombol HENTIKAN
+    const stopHandler = () => {
+      state.isStopped = true;
+      showInPageNotification('⏹️ Proses validasi dihentikan oleh pengguna.', 'error');
+    };
+    if (actionBtn) {
+      actionBtn.disabled = false;
+      actionBtn.textContent = '⏹️ Hentikan';
+      actionBtn.removeEventListener('click', runValidation);
+      actionBtn.addEventListener('click', stopHandler);
+    }
 
     try {
       showInPageNotification('⚡ Memulai validasi presensi otomatis...', 'success');
-      await api.autoValidateAll({
+      const res = await api.autoValidateAll({
         dosenRating: '3',
         asdosPreset: 'default',
         delayMs: 600,
+        onLog: (type, msg) => console.debug('[Amikom]', type, msg),
+        shouldStop: () => state.isStopped,
         onProgress: (p) => {
-          if (actionBtn) actionBtn.textContent = `⚙️ ${p.percent}%`;
           if (labelText) labelText.textContent = `${p.current}/${p.total}`;
         }
       });
-      await checkStatus();
-      showInPageNotification('🎉 Validasi presensi berhasil diselesaikan!', 'success');
+      if (!state.isStopped) {
+        if (res && !res.failedCount && !res.skippedMatkul) {
+          showInPageNotification('🎉 Validasi presensi berhasil diselesaikan!', 'success');
+        } else if (res) {
+          showInPageNotification(
+            `Selesai: ${res.count} tervalidasi, ${res.failedCount} gagal/dilewati, ${res.skippedMatkul} mata kuliah dilewati.`,
+            'error'
+          );
+        }
+      }
     } catch (err) {
-      showInPageNotification(`Kendala validasi: ${err.message}`, 'error');
+      const pesan = (err.code === 'SESSION_EXPIRED' || err.message === 'SESSION_EXPIRED')
+        ? 'Sesi login berakhir. Silakan login ulang di portal, lalu jalankan validasi kembali.'
+        : err.message;
+      showInPageNotification(`Kendala validasi: ${pesan}`, 'error');
     } finally {
       state.isRunning = false;
       if (labelText) labelText.textContent = 'Amikom';
+      if (actionBtn) {
+        actionBtn.removeEventListener('click', stopHandler);
+        actionBtn.addEventListener('click', runValidation);
+        actionBtn.textContent = '🚀 Presensi';
+      }
       await checkStatus();
     }
   }

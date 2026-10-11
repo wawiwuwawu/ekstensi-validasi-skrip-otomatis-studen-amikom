@@ -19,7 +19,7 @@ Dengan versi 2.0, Anda tidak perlu lagi repot bolak-balik halaman web secara man
 - **Penilaian Dosen & Asdos Sesuai Data Riil:**
   - **Nilai Dosen:** Pilihan antara *Baik (Opsi 3 - Standar/Wajar)* atau *Sangat Baik (Opsi 4 - Maksimal)*.
   - **Nilai Asisten Dosen:** Konfigurasi penilaian asdos 4 dimensi (*Kehadiran, Pakaian Seragam, Penguasaan Materi, Komunikasi*) dengan pilihan *Wajar (Tepat waktu & Baik)* atau *Maksimal*.
-- **Fallback Visual DOM Resilient:** Jika sistem web berubah, tersedia mode simulasi visual interaksi DOM yang didukung `MutationObserver` cerdas (bebas race condition).
+- **Dua Titik Jalankan:** Bisa dari Popup ekstensi maupun tombol mengambang (floating dock) di halaman portal; keduanya memakai engine API yang sama dan bisa dihentikan di tengah proses.
 
 ### 2. 🎯 War KRS & Rencana Studi Otomatis
 - **Pemantau SKS Real-Time:** Menampilkan jumlah SKS yang diajukan dan terisi secara langsung.
@@ -131,6 +131,16 @@ Anda hanya perlu memasang ekstensi ini satu kali:
 - **Otomasi War KRS gagal submit?**
   - Pastikan periode KRS di sistem akademik kampus memang sudah dibuka.
   - Aktifkan fitur **"Auto-retry"** pada tab War KRS agar ekstensi otomatis mencoba kembali jika server sedang kelebihan beban (*high-traffic*).
+- **Muncul "Sesi login berakhir…" saat validasi?**
+  - Cookie login portal sudah kedaluwarsa. Login ulang di tab portal, lalu jalankan validasi kembali. Sesi yang sudah berhasil sebelum itu tidak diulang.
+- **Log menunjukkan "sesi dilewati" atau "mata kuliah dilewati"?**
+  - Sesi dilewati bila portal tidak mengirim `id_presensi_mhs` di `ajax_editpresensi` **dan** jumlah `id_presensi_mhs` pada daftar matkul belum validasi tidak sama dengan jumlah tombol validasi di tabel (ekstensi sengaja tidak menebak pemetaan posisi).
+  - Mata kuliah dilewati bila tidak ada opsi dropdown yang cocok di `getmakul` (mis. Skripsi bernilai `__USSIW057`) atau tabel tidak memuat tombol validasi aktif.
+  - Ringkasan akhir selalu melaporkan jumlah sesi **tervalidasi / gagal / dilewati** — periksa angka itu sebelum menganggap proses sukses.
+  - Saat sebuah sesi ditolak server, log menampilkan `inputerror` + `error_string` mentah. Bila pesan itu menyebut `kuliahteori`/`kuliahpraktek`, kirimkan lognya: itu menentukan nilai yang benar untuk sesi praktek.
+- **Cara menjalankan test pipeline validasi presensi?**
+  - `node test-presensi.js` — 24 assertion tanpa jaringan, memakai fixture respons portal di `test/fixtures/`.
+  - `node test-krs.js` — suite War KRS (24 assertion).
 
 ---
 
